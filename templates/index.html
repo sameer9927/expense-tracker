@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Expense Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 18px; background: #f5f7fb; color: #202532; }
+    h1 { margin-bottom: 6px; }
+    .muted { color: #687386; font-size: 14px; }
+    .card { background: white; padding: 22px; border-radius: 12px; margin: 20px 0; box-shadow: 0 2px 10px #17203310; }
+    form.add { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    input, select, button { padding: 11px; border: 1px solid #ccd3df; border-radius: 7px; font-size: 14px; }
+    button { cursor: pointer; background: #2457d6; color: white; border: 0; }
+    button.delete { background: #b42318; padding: 7px 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #edf0f5; }
+    .total { font-size: 28px; font-weight: bold; margin: 8px 0; }
+    .message { padding: 10px; border-radius: 7px; background: #e8f5e9; margin: 10px 0; }
+    .error { background: #ffebee; }
+    @media (max-width: 600px) { form.add { grid-template-columns: 1fr; } table { font-size: 13px; } }
+  </style>
+</head>
+<body>
+  <h1>Expense Tracker</h1>
+  <div class="muted">A simple Flask + MySQL + Redis application</div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="message {{ 'error' if category == 'error' else '' }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <section class="card">
+    <div class="muted">Total expenses this month</div>
+    <div class="total">₹{{ '%.2f'|format(monthly_total) }}</div>
+    <div class="muted">Summary source: {{ total_source }}</div>
+  </section>
+
+  <section class="card">
+    <h2>Add an expense</h2>
+    <form class="add" action="{{ url_for('add_expense') }}" method="post">
+      <input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount (₹)" required>
+      <select name="category" required>
+        <option value="">Choose category</option>
+        <option>Food</option><option>Travel</option><option>Shopping</option>
+        <option>Bills</option><option>Health</option><option>Other</option>
+      </select>
+      <input name="description" type="text" maxlength="255" placeholder="Description (optional)">
+      <input name="expense_date" type="date" required>
+      <button type="submit">Add expense</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>All expenses</h2>
+    {% if expenses %}
+      <table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead>
+        <tbody>
+          {% for expense in expenses %}
+            <tr>
+              <td>{{ expense.expense_date }}</td>
+              <td>{{ expense.category }}</td>
+              <td>{{ expense.description or '—' }}</td>
+              <td>₹{{ '%.2f'|format(expense.amount) }}</td>
+              <td>
+                <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="post">
+                  <button class="delete" type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No expenses yet. Add your first expense above.</p>
+    {% endif %}
+  </section>
+</body>
+</html>
