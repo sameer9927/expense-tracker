@@ -1,0 +1,63 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: expense_tracker
+      MYSQL_USER: expenseuser
+      MYSQL_PASSWORD: expensepass
+    volumes:
+      - expense-db-data:/var/lib/mysql
+    networks:
+      - expense-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: redis-cache
+    networks:
+      - expense-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  flask:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: expense-tracker:v1
+    container_name: flask-app
+    ports:
+      - "5000:5000"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: expenseuser
+      MYSQL_PASSWORD: expensepass
+      MYSQL_DB: expense_tracker
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FLASK_SECRET_KEY: my-expense-secret
+    networks:
+      - expense-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+networks:
+  expense-network:
+    driver: bridge
+
+volumes:
+  expense-db-data:
+    name: expense-db-data 
